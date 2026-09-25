@@ -25,7 +25,7 @@ async function getKey(): Promise<CryptoKey> {
       crypto.getRandomValues(buf);
       stored = bytesToBase64(buf);
       setSetting("secret_key", stored);
-      console.log("[MediLink] 已生成数据库加密密钥（settings.secret_key）");
+      console.log("[医联] 已生成数据库加密密钥（settings.secret_key）");
     }
     raw = base64ToBytes(stored);
   }

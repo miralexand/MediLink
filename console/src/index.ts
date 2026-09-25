@@ -173,7 +173,7 @@ const server = Bun.serve({
 const address = `http://127.0.0.1:${port}`;
 console.log(`
   ╭──────────────────────────────────────────────╮
-  │   MediLink 信息科控制端  v${CONSOLE_VERSION}                │
+  │   医联 信息科控制端  v${CONSOLE_VERSION}                 │
   ╰──────────────────────────────────────────────╯
   控制台地址: ${address}
   配置文件  : ${CONFIG_FILE}

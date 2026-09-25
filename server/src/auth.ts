@@ -17,7 +17,7 @@ export async function ensureAdminSeed(): Promise<void> {
     "INSERT INTO users (username, password_hash, display_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
   ).run(config.adminUser, hash, "系统管理员", "admin", nowIso());
   console.log(
-    `[MediLink] 已创建初始管理员账号: ${config.adminUser}（请首次登录后立即修改口令）`,
+    `[医联] 已创建初始管理员账号: ${config.adminUser}（请首次登录后立即修改口令）`,
   );
 }
 

@@ -30,7 +30,7 @@ function ensureSettingsSeed(): void {
   const missing = Object.entries(defaults).filter(([k]) => existing[k] === undefined);
   for (const [k, v] of missing) setSetting(k, v);
   if (missing.length) {
-    console.log(`[MediLink] 已初始化 ${missing.length} 项默认设置`);
+    console.log(`[医联] 已初始化 ${missing.length} 项默认设置`);
   }
 }
 
@@ -69,7 +69,7 @@ const server = Bun.serve({
           headers: { "Content-Type": "text/html; charset=utf-8", ...CORS_HEADERS },
         });
       } catch {
-        return new Response("MediLink 控制台资源缺失", { status: 500 });
+        return new Response("医联 控制台资源缺失", { status: 500 });
       }
     }
 
@@ -84,7 +84,7 @@ setInterval(purgeExpiredSessions, 3600_000);
 
 console.log(`
   ╭──────────────────────────────────────────────╮
-  │  MediLink 医院内网远程协助服务端  v${config.version}      │
+  │  医联 医院内网远程协助服务端  v${config.version}     │
   ╰──────────────────────────────────────────────╯
   监听地址 : http://0.0.0.0:${config.port}
   管理控制台: http://<本机IP>:${config.port}/

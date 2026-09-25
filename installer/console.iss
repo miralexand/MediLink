@@ -3,7 +3,7 @@
 ; 静默部署示例：
 ;   MediLink-Console-Setup-1.0.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SERVER=http://10.0.0.10:21120
 
-#define MyAppName "MediLink 控制端"
+#define MyAppName "医联 控制端"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "医院信息科"
 #define MyAppExeName "medilink-console.exe"
@@ -38,12 +38,12 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 Source: "..\console\dist\medilink-console.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\MediLink 控制端"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\卸载 MediLink 控制端"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\MediLink 控制端"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\医联 控制端"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\卸载 医联 控制端"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\医联 控制端"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "启动 MediLink 控制端"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "启动 医联 控制端"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "taskkill.exe"; Parameters: "/IM {#MyAppExeName} /F"; RunOnceId: "KillConsole"; Flags: runhidden
@@ -59,8 +59,8 @@ begin
   if (ServerValue = '') and (not WizardSilent) then
   begin
     ServerPage := CreateInputQueryPage(wpSelectDir,
-      'MediLink 控制端配置', '配置管理服务端地址',
-      '请填写内网 MediLink 管理服务端地址，控制端将据此加载设备台账。' + #13#10 +
+      '医联 控制端配置', '配置管理服务端地址',
+      '请填写内网 医联 管理服务端地址，控制端将据此加载设备台账。' + #13#10 +
       '后续也可在控制台右上角“设置”中修改。');
     ServerPage.Add('服务端地址（如 http://10.0.0.10:21120）：', False);
     ServerPage.Values[0] := 'http://10.0.0.10:21120';

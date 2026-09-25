@@ -1,4 +1,4 @@
-# MediLink 常见问题（FAQ）
+# 医联（MediLink）常见问题（FAQ）
 
 ## 部署与网络
 

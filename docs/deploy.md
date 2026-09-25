@@ -1,4 +1,4 @@
-# MediLink 服务端部署指南
+# 医联（MediLink）服务端部署指南
 
 面向医院信息科，在医院内网 Linux 服务器上部署 MediLink 管理平台与 RustDesk 服务端。
 

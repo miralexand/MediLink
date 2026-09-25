@@ -113,7 +113,7 @@ async function runLoop(cfg: AgentConfig): Promise<void> {
     log("未配置 server_url，请先运行 medilink-agent install --server http://<服务器IP>:21120", "ERROR");
     process.exit(2);
   }
-  log(`MediLink 被控端启动 v${AGENT_VERSION}，服务端：${cfg.server_url}，心跳间隔：${cfg.interval_seconds}s`);
+  log(`医联 被控端启动 v${AGENT_VERSION}，服务端：${cfg.server_url}，心跳间隔：${cfg.interval_seconds}s`);
   let id = "";
   let stopping = false;
   for (const sig of ["SIGINT", "SIGTERM"] as const) {
@@ -272,7 +272,7 @@ async function main(): Promise<void> {
 
 function printHelp(): void {
   console.log(`
-MediLink 被控端 v${AGENT_VERSION}
+医联（MediLink）被控端 v${AGENT_VERSION}
 
 用法：medilink-agent <命令> [参数]
 

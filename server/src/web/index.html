@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MediLink 医院内网远程协助平台</title>
+<title>医联 医院内网远程协助平台</title>
 <style>
   :root {
     --bg: #f4f7fb;
@@ -123,8 +123,8 @@
 
 <div id="login">
   <div class="login-card">
-    <div class="logo-badge">ML</div>
-    <h1>MediLink 管理平台</h1>
+    <div class="logo-badge">医联</div>
+    <h1>医联 管理平台</h1>
     <div class="sub">医院内网远程协助 · 设备台账与会话审计</div>
     <div class="err" id="loginErr"></div>
     <form id="loginForm">
@@ -137,14 +137,14 @@
 
 <div id="app">
   <aside>
-    <div class="brand"><span class="badge">ML</span><span id="brandName">MediLink</span></div>
+    <div class="brand"><span class="badge">医联</span><span id="brandName">医联</span></div>
     <nav>
       <a href="#overview" data-view="overview" class="active">概览</a>
       <a href="#devices" data-view="devices">设备台账</a>
       <a href="#audit" data-view="audit">会话审计</a>
       <a href="#settings" data-view="settings">系统设置</a>
     </nav>
-    <div class="foot">MediLink v<span id="ver">1.0.0</span><br/>数据不出内网</div>
+    <div class="foot">医联 v<span id="ver">1.0.0</span><br/>数据不出内网</div>
   </aside>
   <main>
     <div class="topbar">
@@ -329,7 +329,7 @@ const App = {
     document.getElementById('s_allow_registration').checked = s.allow_registration==='1';
     document.getElementById('s_require_approval').checked = s.require_approval==='1';
     document.getElementById('s_default_readonly').checked = s.default_readonly==='1';
-    if(s.site_name){ document.getElementById('brandName').textContent='MediLink'; }
+    if(s.site_name){ document.getElementById('brandName').textContent='医联'; }
   },
   async saveSettings(){
     const body = {

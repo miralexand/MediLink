@@ -56,7 +56,7 @@ export const config = {
   auditRetentionDays: envInt("MEDILINK_AUDIT_RETENTION_DAYS", 180),
 
   /** 站点名称，用于控制台展示 */
-  siteName: env("MEDILINK_SITE_NAME", "MediLink 医院内网远程协助平台"),
+  siteName: env("MEDILINK_SITE_NAME", "医联 医院内网远程协助平台"),
 
   /** 服务端版本 */
   version: "1.0.0",

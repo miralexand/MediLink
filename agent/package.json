@@ -1,7 +1,7 @@
 {
   "name": "@medilink/agent",
   "version": "1.0.0",
-  "description": "MediLink 被控客户端（Windows）",
+  "description": "医联（MediLink）被控客户端（Windows）",
   "private": true,
   "type": "module",
   "scripts": {

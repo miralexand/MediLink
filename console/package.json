@@ -1,7 +1,7 @@
 {
   "name": "@medilink/console",
   "version": "1.0.0",
-  "description": "MediLink 信息科控制端（Windows）",
+  "description": "医联（MediLink）信息科控制端（Windows）",
   "private": true,
   "type": "module",
   "scripts": {

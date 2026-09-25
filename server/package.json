@@ -1,7 +1,7 @@
 {
   "name": "@medilink/server",
   "version": "1.0.0",
-  "description": "MediLink 医院内网远程协助管理服务端",
+  "description": "医联（MediLink）医院内网远程协助管理服务端",
   "private": true,
   "module": "src/index.ts",
   "type": "module",
