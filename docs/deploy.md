@@ -2,6 +2,8 @@
 
 面向医院信息科，在医院内网 Linux 服务器上部署 MediLink 管理平台与 RustDesk 服务端。
 
+> 第一次部署建议先阅读图文步骤更完整的 [新手安装部署教程](getting-started.md)。
+
 ## 一、总体架构
 
 ```text
