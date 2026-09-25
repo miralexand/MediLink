@@ -158,6 +158,18 @@ MediLink-Agent-Setup-1.0.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SERVER=
 - Docker + Docker Compose（服务端部署）
 - [Inno Setup 6](https://jrsoftware.org/isinfo.php)（打包安装程序）
 
+### 自动构建（GitHub Actions）
+
+- 推送到 `main` / 提交 PR：自动安装依赖、类型检查并编译两个 exe，产物在 Actions Artifacts 下载；
+- 打 `v*` 标签：自动构建并发布被控端、控制端安装包到 Releases；
+- 同时自动构建服务端镜像并推送到 `ghcr.io/<owner>/medilink-server:latest`。
+
+服务端也可直接使用 CI 构建的镜像，在 `docker-compose.yml` 中将 `build:` 换成：
+
+```yaml
+image: ghcr.io/<owner>/medilink-server:latest
+```
+
 ### 本地运行服务端
 
 ```bash

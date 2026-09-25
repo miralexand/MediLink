@@ -1,0 +1,48 @@
+name: CI Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dev dependencies
+        shell: pwsh
+        run: |
+          bun install --cwd server
+          bun install --cwd agent
+          bun install --cwd console
+
+      - name: Typecheck
+        shell: pwsh
+        run: |
+          bun run --cwd server typecheck
+          bun run --cwd agent typecheck
+          bun run --cwd console typecheck
+
+      - name: Compile Windows executables
+        shell: pwsh
+        run: |
+          bun run --cwd agent compile
+          bun run --cwd console compile
+
+      - name: Upload Windows executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: medilink-exe
+          path: |
+            agent/dist/*.exe
+            console/dist/*.exe
+          if-no-files-found: error
