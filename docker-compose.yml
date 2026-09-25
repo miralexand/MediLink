@@ -1,0 +1,76 @@
+# MediLink 医院内网远程协助系统 —— 服务端编排
+#
+# 组成：
+#   hbbs      RustDesk ID / 信令服务器
+#   hbbr      RustDesk 中继服务器
+#   medilink  MediLink 管理服务端（设备台账 / 审计 / 控制台）
+#
+# 使用：
+#   cp .env.example .env && vi .env
+#   docker compose up -d
+#   docker compose logs -f
+#
+# 注意：所有服务仅暴露在医院内网，切勿映射到公网。
+
+services:
+  hbbs:
+    image: rustdesk/rustdesk-server:latest
+    container_name: medilink-hbbs
+    command: hbbs -r ${RELAY_HOST:-10.0.0.10}:21117
+    volumes:
+      - ./data/rustdesk:/root
+    ports:
+      - "${HBBS_IP:-0.0.0.0}:21115:21115"
+      - "${HBBS_IP:-0.0.0.0}:21116:21116"
+      - "${HBBS_IP:-0.0.0.0}:21116:21116/udp"
+      - "${HBBS_IP:-0.0.0.0}:21118:21118"
+    restart: unless-stopped
+    networks:
+      - medilink
+
+  hbbr:
+    image: rustdesk/rustdesk-server:latest
+    container_name: medilink-hbbr
+    command: hbbr
+    volumes:
+      - ./data/rustdesk:/root
+    ports:
+      - "${HBBS_IP:-0.0.0.0}:21117:21117"
+      - "${HBBS_IP:-0.0.0.0}:21119:21119"
+    restart: unless-stopped
+    networks:
+      - medilink
+
+  medilink:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: medilink/server:latest
+    container_name: medilink-server
+    environment:
+      MEDILINK_PORT: "8080"
+      MEDILINK_DB_PATH: /app/data/medilink.db
+      MEDILINK_ADMIN_USER: ${MEDILINK_ADMIN_USER:-admin}
+      MEDILINK_ADMIN_PASSWORD: ${MEDILINK_ADMIN_PASSWORD:-MediLink@2026}
+      MEDILINK_ENROLLMENT_KEY: ${MEDILINK_ENROLLMENT_KEY:-}
+      MEDILINK_RENDEZVOUS_SERVER: ${RENDEZVOUS_SERVER:-10.0.0.10:21116}
+      MEDILINK_RELAY_SERVER: ${RELAY_HOST:-10.0.0.10}:21117
+      MEDILINK_RUSTDESK_KEY: ${MEDILINK_RUSTDESK_KEY:-}
+      MEDILINK_REQUIRE_APPROVAL: ${MEDILINK_REQUIRE_APPROVAL:-true}
+      MEDILINK_DEFAULT_READONLY: ${MEDILINK_DEFAULT_READONLY:-true}
+      MEDILINK_AUDIT_RETENTION_DAYS: ${MEDILINK_AUDIT_RETENTION_DAYS:-180}
+      MEDILINK_SECRET_KEY: ${MEDILINK_SECRET_KEY:-}
+    volumes:
+      - ./data/medilink:/app/data
+    ports:
+      - "${MEDILINK_BIND_IP:-0.0.0.0}:${MEDILINK_PORT:-21120}:8080"
+    depends_on:
+      - hbbs
+      - hbbr
+    restart: unless-stopped
+    networks:
+      - medilink
+
+networks:
+  medilink:
+    driver: bridge

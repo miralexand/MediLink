@@ -1,0 +1,40 @@
+# 依赖
+node_modules/
+bun.lockb
+
+# 构建产物
+dist/
+build/
+out/
+*.exe
+*.msi
+installer/Output/
+
+# 运行数据（服务端密钥、数据库、RustDesk data 目录）
+data/
+server/data/
+docker/data/
+*.db
+*.db-shm
+*.db-wal
+
+# 日志与临时文件
+*.log
+logs/
+tmp/
+.tmp/
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 台账（含敏感信息，默认不入库；如需版本化请删除此行）
+device-ledger.csv

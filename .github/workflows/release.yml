@@ -1,0 +1,56 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installers
+        shell: pwsh
+        run: ./installer/build.ps1 -Force
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: medilink-windows
+          path: |
+            installer/Output/*.exe
+            agent/dist/*.exe
+            console/dist/*.exe
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            installer/Output/MediLink-Agent-Setup-*.exe
+            installer/Output/MediLink-Console-Setup-*.exe
+          generate_release_notes: true
+          body: |
+            MediLink 医院内网远程协助系统发行版。
+
+            - `MediLink-Agent-Setup-*.exe`：被控端安装包（部署到各科室终端）
+            - `MediLink-Console-Setup-*.exe`：信息科控制端安装包
+
+            服务端请使用仓库内 `docker-compose.yml` 部署，详见 `docs/deploy.md`。

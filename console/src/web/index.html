@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediLink 信息科控制台</title>
+<style>
+  :root{--bg:#f4f7fb;--panel:#fff;--primary:#1a6fd4;--primary-dark:#145bb0;--success:#1f9d55;--danger:#d64545;--text:#1f2d3d;--muted:#6b7c93;--border:#e2e8f0;--radius:10px;--shadow:0 2px 10px rgba(24,50,90,.08)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  button{font-family:inherit;cursor:pointer}
+  input,select{font-family:inherit;font-size:14px;padding:8px 11px;border:1px solid var(--border);border-radius:8px;outline:none}
+  input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,111,212,.12)}
+  .hidden{display:none!important}
+  .btn{padding:9px 15px;border:1px solid transparent;border-radius:8px;background:var(--primary);color:#fff}
+  .btn:hover{background:var(--primary-dark)}
+  .btn.ghost{background:#fff;color:var(--text);border-color:var(--border)}
+  .btn.ghost:hover{background:#f1f5f9}
+  .btn.small{padding:5px 10px;font-size:12.5px;border-radius:6px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  header{background:#0d2b4e;color:#fff;padding:12px 22px;display:flex;align-items:center;gap:14px}
+  header .brand{font-weight:700;font-size:16px;display:flex;align-items:center;gap:9px}
+  header .brand .b{background:var(--primary);width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px}
+  header .spacer{flex:1}
+  header .server{font-size:12.5px;color:#9fc0e6}
+  main{max-width:1200px;margin:0 auto;padding:22px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:13px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+  .card .num{font-size:24px;font-weight:700;margin-top:3px}
+  .card .lbl{color:var(--muted);font-size:12.5px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px}
+  .panel .head{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .panel .head h3{margin:0;font-size:15px;margin-right:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--border);font-size:13.5px}
+  th{color:var(--muted);font-weight:600;background:#fafcff}
+  tbody tr:hover{background:#f7faff}
+  td.mono{font-family:Consolas,monospace}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px}
+  .pill.online{background:#e5f6ec;color:var(--success)}
+  .pill.offline{background:#f0f2f5;color:var(--muted)}
+  .pill.dept{background:#eef1f5;color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+  .empty{padding:34px;text-align:center;color:var(--muted)}
+  .err{color:var(--danger);font-size:13px;min-height:18px}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#12263f;color:#fff;padding:11px 20px;border-radius:10px;font-size:13.5px;opacity:0;transition:opacity .25s;z-index:100}
+  .toast.show{opacity:.97}
+  .modal-mask{position:fixed;inset:0;background:rgba(15,30,55,.45);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;border-radius:14px;width:520px;max-width:94vw;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .modal .mh{padding:17px 21px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .modal .mh h3{margin:0;font-size:16px}
+  .modal .mb{padding:19px 21px}
+  .modal .mf{padding:13px 21px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px}
+  .close-x{background:none;border:none;font-size:20px;color:var(--muted)}
+  .field{margin-bottom:14px}
+  .field label{display:block;margin-bottom:6px;color:var(--muted);font-size:13px}
+  .field input{width:100%}
+  .kv{display:grid;grid-template-columns:100px 1fr;gap:9px 13px;align-items:center}
+  .kv .k{color:var(--muted)}
+  .copyrow{display:flex;gap:7px;align-items:center}
+  .copyrow code{flex:1;background:#f4f7fb;border:1px solid var(--border);border-radius:7px;padding:7px 9px;font-family:Consolas,monospace;word-break:break-all}
+  .help{color:var(--muted);font-size:12.5px;margin-top:8px}
+  .login-wrap{max-width:390px;margin:60px auto;background:#fff;border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:var(--shadow)}
+  .login-wrap h1{font-size:21px;margin:0 0 4px}
+  .login-wrap .sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+  .activebar{background:#e7f3ff;border:1px solid #b8d8fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .activebar .spacer{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="b">ML</span>MediLink 信息科控制台</div>
+  <div class="spacer"></div>
+  <span class="server" id="serverLabel"></span>
+  <button class="btn ghost small" id="settingsBtn" style="background:transparent;color:#cfe0f5;border-color:rgba(255,255,255,.25)">设置</button>
+  <button class="btn ghost small hidden" id="logoutBtn" style="background:transparent;color:#cfe0f5;border-color:rgba(255,255,255,.25)">退出</button>
+</header>
+
+<main>
+  <div id="setupNotice" class="panel hidden">
+    <div class="mb" style="padding:20px">
+      <h3 style="margin-top:0">尚未配置管理服务端</h3>
+      <div class="help" style="margin-bottom:12px">请输入内网 MediLink 管理服务端地址，例如 <code>http://10.0.0.10:21120</code></div>
+      <button class="btn" onclick="Console.openSettings(true)">立即配置</button>
+    </div>
+  </div>
+
+  <div id="loginWrap" class="login-wrap hidden">
+    <h1>登录管理服务端</h1>
+    <div class="sub" id="loginServerSub"></div>
+    <div class="err" id="loginErr"></div>
+    <div class="field"><label>管理员账号</label><input id="u" autocomplete="username" /></div>
+    <div class="field"><label>口令</label><input id="p" type="password" autocomplete="current-password" /></div>
+    <button class="btn" style="width:100%;padding:11px" onclick="Console.login()">登 录</button>
+  </div>
+
+  <div id="activeBar" class="activebar hidden">
+    <b>会话进行中：</b><span id="activeInfo"></span>
+    <div class="spacer"></div>
+    <button class="btn small" onclick="Console.endSession()">结束会话</button>
+  </div>
+
+  <div class="cards" id="statCards"></div>
+
+  <div class="panel" id="devicePanel">
+    <div class="head">
+      <h3>设备台账</h3>
+      <input id="q" placeholder="搜索 设备ID/计算机名/使用人/IP" style="width:260px" onkeydown="if(event.key==='Enter')Console.loadDevices()" />
+      <select id="dept"><option value="">全部科室</option></select>
+      <select id="status"><option value="">全部状态</option><option value="online">在线</option><option value="offline">离线</option></select>
+      <button class="btn ghost small" onclick="Console.loadDevices()">查询</button>
+      <button class="btn ghost small" onclick="Console.exportDevices()">导出 CSV</button>
+      <button class="btn ghost small" onclick="Console.openServerAdmin()">打开服务端管理页</button>
+    </div>
+    <div id="deviceTable"></div>
+  </div>
+
+  <div class="panel">
+    <div class="head"><h3>最近会话审计</h3><button class="btn ghost small" onclick="Console.exportAudit()">导出 CSV</button></div>
+    <div id="auditTable"></div>
+  </div>
+</main>
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LOCAL = location.origin;
+const state = { server:'', token:'', user:null, active:null, refresh:null };
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
+function norm(s){return (s||'').trim().replace(/\/+$/,'');}
+
+async function localApi(path,opts){return (await fetch(LOCAL+path,opts)).json();}
+async function serverApi(path,opts={}){
+  const headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});
+  if(state.token) headers['Authorization']='Bearer '+state.token;
+  const r=await fetch(state.server+path,Object.assign({},opts,{headers}));
+  if(r.status===401){ Console.logout(); throw new Error('登录已过期'); }
+  const ct=r.headers.get('content-type')||'';
+  return ct.includes('json')?r.json():r.text();
+}
+
+const Console = {
+  async boot(){
+    const cfg = await localApi('/local/config');
+    state.server = norm(cfg.server_url);
+    document.getElementById('serverLabel').textContent = state.server ? '服务端：'+state.server : '未配置服务端';
+    if(!state.server){ document.getElementById('setupNotice').classList.remove('hidden'); return; }
+    const saved = localStorage.getItem('mlc_token_'+state.server);
+    if(saved){
+      state.token = saved;
+      try{ const me=await serverApi('/api/auth/me'); state.user=me.user; this.showMain(); return; }catch(e){}
+    }
+    this.showLogin();
+  },
+  showLogin(){
+    document.getElementById('setupNotice').classList.add('hidden');
+    document.getElementById('loginWrap').classList.remove('hidden');
+    document.getElementById('loginServerSub').textContent = state.server;
+    document.getElementById('logoutBtn').classList.add('hidden');
+    document.getElementById('activeBar').classList.add('hidden');
+  },
+  showMain(){
+    document.getElementById('loginWrap').classList.add('hidden');
+    document.getElementById('setupNotice').classList.add('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+    this.loadStats(); this.loadDevices(); this.loadAudit();
+    if(state.refresh) clearInterval(state.refresh);
+    state.refresh = setInterval(()=>{ this.loadStats(); this.loadDevices(); }, 30000);
+  },
+  async login(){
+    const err=document.getElementById('loginErr'); err.textContent='';
+    try{
+      const r = await serverApi('/api/auth/login',{method:'POST',body:JSON.stringify({username:document.getElementById('u').value,password:document.getElementById('p').value})});
+      if(!r.ok){ err.textContent=r.error||'登录失败'; return; }
+      state.token=r.token; state.user=r.user; localStorage.setItem('mlc_token_'+state.server,r.token);
+      document.getElementById('p').value='';
+      this.showMain();
+    }catch(e){ err.textContent='无法连接服务端：'+e.message; }
+  },
+  logout(){
+    if(state.token && state.server) serverApi('/api/auth/logout',{method:'POST'}).catch(()=>{});
+    state.token=''; state.user=null; localStorage.removeItem('mlc_token_'+state.server);
+    this.showLogin();
+  },
+  async loadStats(){
+    try{
+      const r=await serverApi('/api/stats'); const s=r.stats;
+      const cards=[['设备总数',s.devices_total,'#1a6fd4'],['在线',s.devices_online,'#1f9d55'],['离线',s.devices_offline,'#6b7c93'],['覆盖科室',s.departments,'#2a9d8f'],['今日会话',s.sessions_today,'#d98a00']];
+      document.getElementById('statCards').innerHTML=cards.map(c=>`<div class="card"><div class="lbl">${c[0]}</div><div class="num" style="color:${c[2]}">${c[1]}</div></div>`).join('');
+    }catch(e){}
+  },
+  async loadDevices(){
+    if(!state.token) return;
+    const q=document.getElementById('q').value.trim();
+    const d=document.getElementById('dept').value;
+    const s=document.getElementById('status').value;
+    try{
+      const r=await serverApi('/api/devices?q='+encodeURIComponent(q)+'&department='+encodeURIComponent(d)+'&status='+s);
+      const items=r.items||[];
+      const depts=[...new Set(items.map(x=>x.department).filter(Boolean))].sort();
+      const sel=document.getElementById('dept'); const cur=sel.value;
+      sel.innerHTML='<option value="">全部科室</option>'+depts.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('');
+      renderDevices(items);
+    }catch(e){}
+  },
+  async loadAudit(){
+    if(!state.token) return;
+    try{ const r=await serverApi('/api/audit?limit=40'); renderAudit(r.items||[]); }catch(e){}
+  },
+  async connect(id,host){
+    try{
+      const r = await serverApi('/api/audit/connect',{method:'POST',body:JSON.stringify({device_id:id})});
+      if(!r.ok){ toast(r.error||'发起失败'); return; }
+      const launch = await localApi('/local/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rustdesk_id:r.device.rustdesk_id,password:r.unattended_password})});
+      if(!launch.ok){ toast(launch.error||'无法拉起本机 RustDesk'); }
+      else { toast('已在本机拉起 RustDesk 连接 '+host); }
+      state.active={ session_id:r.session_id, device:r.device };
+      this.renderActive();
+      this.loadAudit(); this.loadStats();
+    }catch(e){ toast('发起失败：'+e.message); }
+  },
+  renderActive(){
+    if(!state.active){ document.getElementById('activeBar').classList.add('hidden'); return; }
+    document.getElementById('activeBar').classList.remove('hidden');
+    document.getElementById('activeInfo').textContent = `${state.active.device.hostname||state.active.device.rustdesk_id}（${state.active.device.department||'未分类'}）`;
+  },
+  async endSession(){
+    if(!state.active) return;
+    try{ await serverApi('/api/audit/session/'+state.active.session_id+'/end',{method:'POST',body:JSON.stringify({result:'ended'})}); }catch(e){}
+    state.active=null; this.renderActive(); toast('会话已结束'); this.loadAudit(); this.loadStats();
+  },
+  exportDevices(){ if(state.server) window.open(state.server+'/api/devices/export.csv','_blank'); },
+  exportAudit(){ if(state.server) window.open(state.server+'/api/audit/export.csv','_blank'); },
+  openServerAdmin(){ if(state.server) window.open(state.server,'_blank'); },
+  openSettings(first){
+    const body=`
+      <div class="field"><label>管理服务端地址</label><input id="cfg_server" value="${esc(state.server)}" placeholder="http://10.0.0.10:21120"/></div>
+      <div class="field"><label>本机 RustDesk 路径（可留空自动探测）</label><input id="cfg_rd" placeholder="C:\\Program Files\\RustDesk\\rustdesk.exe"/></div>
+      <div class="help" id="cfg_rd_hint"></div>`;
+    openModal('控制端设置', body, async ()=>{
+      const r = await localApi('/local/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({server_url:document.getElementById('cfg_server').value,rustdesk_exe:document.getElementById('cfg_rd').value})});
+      state.server=norm(r.server_url||document.getElementById('cfg_server').value);
+      toast('已保存'); 
+      if(!r.rustdesk_detected) toast('提示：未检测到 RustDesk，请安装后重试');
+      await Console.boot();
+      return true;
+    });
+    localApi('/local/rustdesk').then(rd=>{
+      const h=document.getElementById('cfg_rd_hint');
+      if(h) h.textContent = rd.found ? ('已检测到 RustDesk：'+rd.exe) : '未检测到 RustDesk，将无法一键连接';
+    });
+  }
+};
+
+function renderDevices(items){
+  if(!items.length){document.getElementById('deviceTable').innerHTML='<div class="empty">暂无设备</div>';return;}
+  const rows=items.map(d=>`<tr>
+    <td class="mono">${esc(d.rustdesk_id)}</td>
+    <td>${esc(d.hostname)||'-'}</td>
+    <td>${esc(d.username)||'-'}</td>
+    <td>${d.department?`<span class="pill dept">${esc(d.department)}</span>`:'-'}</td>
+    <td class="mono">${esc(d.ip)||'-'}</td>
+    <td>${d.online?'<span class="pill online"><span class="dot"></span>在线</span>':'<span class="pill offline"><span class="dot"></span>离线</span>'}</td>
+    <td><button class="btn small" onclick="Console.connect(${d.id},'${esc(d.hostname||d.rustdesk_id)}')">发起远程协助</button></td>
+  </tr>`).join('');
+  document.getElementById('deviceTable').innerHTML=`<table><thead><tr><th>设备 ID</th><th>计算机名</th><th>使用人</th><th>科室</th><th>IP</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderAudit(items){
+  if(!items.length){document.getElementById('auditTable').innerHTML='<div class="empty">暂无记录</div>';return;}
+  const rows=items.map(a=>`<tr>
+    <td>${esc(new Date(a.started_at).toLocaleString('zh-CN'))}</td>
+    <td>${esc(a.operator)}</td>
+    <td>${esc(a.target_hostname||a.target_rustdesk_id||'-')}</td>
+    <td>${a.duration_seconds!=null?fmtDur(a.duration_seconds):'-'}</td>
+    <td>${esc(resultName(a.result))}</td>
+  </tr>`).join('');
+  document.getElementById('auditTable').innerHTML=`<table><thead><tr><th>时间</th><th>操作人</th><th>目标设备</th><th>时长</th><th>结果</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function resultName(r){return {initiated:'已发起',ended:'已结束',success:'成功',failed:'失败'}[r]||r||'-';}
+function fmtDur(s){if(s<60)return s+' 秒';const m=Math.floor(s/60);if(m<60)return m+' 分 '+(s%60)+' 秒';return Math.floor(m/60)+' 时 '+(m%60)+' 分';}
+function openModal(title,bodyHtml,onOk,okText){
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-mask"><div class="modal">
+    <div class="mh"><h3>${esc(title)}</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
+    <div class="mb">${bodyHtml}</div>
+    <div class="mf"><button class="btn ghost" onclick="closeModal()">关闭</button>${onOk?`<button class="btn" id="mOk">${esc(okText||'保存')}</button>`:''}</div>
+  </div></div>`;
+  if(onOk) document.getElementById('mOk').onclick=async()=>{const r=await onOk();if(r!==false)closeModal();};
+}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';}
+
+document.getElementById('logoutBtn').addEventListener('click',()=>Console.logout());
+document.getElementById('settingsBtn').addEventListener('click',()=>Console.openSettings(false));
+document.getElementById('p').addEventListener('keydown',e=>{if(e.key==='Enter')Console.login();});
+Console.boot();
+</script>
+</body>
+</html>
