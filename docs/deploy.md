@@ -53,6 +53,9 @@ sudo bash scripts/deploy-server.sh
 
 脚本会构建镜像、启动 hbbs/hbbr/medilink，并输出 RustDesk 服务端公钥。
 
+> 没有 Linux 服务器时，可在内网 Windows 机器上用 WSL2 + Docker Desktop 部署，
+> 见 [十一、在 Windows 上部署](#十一在-windows-上部署wsl2--docker-desktop)。
+
 ### 关键配置项（.env）
 
 | 变量 | 说明 |
@@ -129,3 +132,99 @@ sudo bash scripts/backup.sh /data/backup/medilink
 - 监控端口存活：21116、21117；
 - 接入医院原有 Zabbix/Prometheus，对 `/health` 做健康检查；
 - 关注磁盘与审计库增长，定期执行审计清理。
+
+## 十一、在 Windows 上部署（WSL2 + Docker Desktop）
+
+没有独立 Linux 服务器时，可在医院内网的一台 Windows 机器上部署服务端。
+`hbbs` / `hbbr` / `medilink` 均为 Linux 容器，通过 Docker Desktop 的 WSL2 后端运行。
+
+### 1. 前置条件
+
+- Windows 10/11 或 Windows Server 2022+；
+- 启用 WSL2：
+
+  ```powershell
+  wsl --install
+  wsl -l -v          # 确认 VERSION 为 2
+  ```
+
+- 安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)，在
+  **Settings → General** 勾选 *Use the WSL 2 based engine*，启动并保持运行；
+- 固定内网 IP（示例 `10.0.0.10`），Windows 防火墙放行 `21116`、`21117`、`21120`；
+- 建议服务器时间与终端一致。
+
+### 2. 部署步骤
+
+```powershell
+git clone <你的仓库地址> medilink
+cd medilink
+copy .env.example .env
+notepad .env       # 修改 RENDEZVOUS_SERVER / RELAY_HOST / MEDILINK_ENROLLMENT_KEY
+powershell -ExecutionPolicy Bypass -File scripts\deploy-server.ps1
+```
+
+`deploy-server.ps1` 与 Linux 的 `deploy-server.sh` 等价：构建镜像、启动
+`hbbs` / `hbbr` / `medilink`，并输出 RustDesk 服务端公钥。
+
+### 3. 网络与 UDP 21116
+
+hbbs 的 ID 注册与心跳依赖 **UDP 21116**。Docker Desktop 默认会把发布的容器端口
+（含 UDP）转发到 Windows 主机，局域网终端通常可直接访问。若终端始终拿不到设备 ID：
+
+1. 在 `%UserProfile%\.wslconfig` 中加入镜像网络：
+
+   ```ini
+   [wsl2]
+   networkingMode=mirrored
+   ```
+
+2. 执行 `wsl --shutdown`，随后重新启动 Docker Desktop。
+
+> 若改为在 WSL 发行版内直接安装 Docker（而不是 Docker Desktop），WSL2 默认 NAT
+> 网络下 `netsh interface portproxy` 仅支持 TCP，UDP 21116 需借助镜像网络，或接受
+> P2P 直连不可用、仅通过中继 `21117` 连接。
+
+### 4. 数据、访问与维护
+
+- 数据目录为仓库下的 `data\`（RustDesk 密钥、SQLite 台账与审计库）；
+- 浏览器访问 `http://<Windows内网IP>:21120/`，被控端与控制端填写同一 IP；
+- 在 Docker Desktop 设置中开启 *Start Docker Desktop when you sign in*，
+  配合容器的 `restart: unless-stopped` 实现开机自启；
+- 升级：`git pull` 后重新运行 `scripts\deploy-server.ps1`；
+- 备份可手动打包 `data\` 与 `.env`，或从 WSL 内执行 `bash scripts/backup.sh`。
+
+> 数据库性能提示：若将仓库放在 `E:\` 等 NTFS 盘且遇到 SQLite 锁或性能问题，
+> 可把仓库放到 WSL 文件系统（如 `~/medilink`）后，从 WSL 内执行
+> `sudo bash scripts/deploy-server.sh`。
+
+## 十二、被控端接入检查清单（安装后必看）
+
+被控端安装后，**终端侧一般无需人工配置**，但服务端需满足以下条件，否则设备会
+登记失败或无法远程连接。**建议先配置好服务端 Key，再批量安装被控端。**
+
+| 检查项 | 要求 | 位置 |
+|---|---|---|
+| RustDesk Key | 必须已填写，否则 RustDesk 连不上自建服务器 | 控制台 → 系统设置 → RustDesk Key，或 `.env` 的 `MEDILINK_RUSTDESK_KEY` |
+| 注册密钥 | 安装参数 `/KEY=` 与服务端一致，否则返回 `BAD_ENROLLMENT_KEY` | 控制台 → 系统设置 → 注册密钥 |
+| 允许自动注册 | 批量部署期间需开启，完成后可关闭 | 控制台 → 系统设置 |
+| 科室命名 | 与 `/DEPARTMENT=` 一致，建议统一命名 | 控制台 → 设备台账 |
+| 网络 | 终端可访问服务端 `21116`/`21117`/`21120`（TCP）与 `21116`（UDP） | 防火墙 / VLAN ACL |
+| 时间同步 | 终端与服务端时间一致 | w32time / NTP |
+
+终端侧由安装程序自动完成：RustDesk 静默安装与服务注册、下发 `host/key/relay`
+配置、设置无人值守密码、注册 `MediLinkAgent` 开机计划任务。
+
+**前提：终端需已安装 RustDesk。** 安装包仅在 `installer\payload\rustdesk.msi`
+存在时才会随包静默安装；否则会报 `rustdesk-not-found`，可先用
+`scripts\install-agent.ps1 -MsiPath <安装包>` 指定，或手动安装 RustDesk。
+
+> 注意：被控端**仅在首次登记时**从服务端拉取 `host/key/relay`，之后只做心跳。
+> 若在部署后才修改服务端 Key 或地址，需重启被控端任务以重新拉取：
+>
+> ```powershell
+> schtasks /End /TN MediLinkAgent
+> schtasks /Run /TN MediLinkAgent
+> ```
+
+被控端配置文件位置：exe 版为 `%ProgramData%\MediLink\agent.json`，
+PowerShell 版为 `%ProgramData%\MediLink\agent-ps.json`。

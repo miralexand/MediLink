@@ -17,6 +17,9 @@ A：修改 `.env` 中 `RENDEZVOUS_SERVER` / `RELAY_HOST` 与 `docker-compose.yml
 **Q：能不能不用 Docker？**
 A：可以，RustDesk 服务端提供二进制包。但 Docker 方式升级与迁移更简单，推荐优先使用。
 
+**Q：能不能在 Windows 上部署服务端？**
+A：可以。用 WSL2 + Docker Desktop 运行三个 Linux 容器，执行 `powershell -ExecutionPolicy Bypass -File scripts\deploy-server.ps1`。Docker Desktop 默认转发端口（含 UDP 21116）；若终端始终拿不到 ID，可启用 WSL 镜像网络（`networkingMode=mirrored`）。详见 [`deploy.md`](deploy.md) 第十一节。
+
 ## 客户端与部署
 
 **Q：被控端 exe 体积为什么有一百多 MB？**
@@ -31,6 +34,9 @@ MediLink-Agent-Setup-1.0.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART `
 ```
 
 可配合 GPO 登录脚本、SCCM/终端管理系统推送。
+
+**Q：被控端安装后还需要配置什么？**
+A：终端侧一般无需人工配置（RustDesk 安装、接入参数、无人值守密码、开机任务均自动完成）。需在服务端确认：① 控制台**已填写 RustDesk Key**；② 安装用的 `/KEY=` 与服务端**注册密钥一致**；③ **允许自动注册**为开。注意被控端仅在首次登记时拉取接入参数，若之后才修改 Key/地址，需重启计划任务 `MediLinkAgent` 使其重新拉取。详见 [`deploy.md`](deploy.md) 第十二节。
 
 **Q：被控端安装在哪个目录？**
 A：程序位于 `C:\Program Files\MediLink`，配置与日志位于 `C:\ProgramData\MediLink`，开机计划任务名为 `MediLinkAgent`。

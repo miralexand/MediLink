@@ -76,7 +76,7 @@
 
 ## 快速开始
 
-### 1. 部署服务端（医院内网 Linux）
+### 1. 部署服务端（医院内网 Linux / Windows）
 
 ```bash
 git clone <你的仓库地址> medilink
@@ -87,6 +87,15 @@ sudo bash scripts/deploy-server.sh
 ```
 
 脚本会启动 `hbbs`、`hbbr`、`medilink` 三个容器，并输出 RustDesk 服务端公钥。
+
+没有 Linux 服务器时，可在内网 Windows 机器上用 WSL2 + Docker Desktop 部署：
+
+```powershell
+copy .env.example .env
+notepad .env            # 同上，修改三项配置
+powershell -ExecutionPolicy Bypass -File scripts\deploy-server.ps1
+```
+
 详见 [`docs/deploy.md`](docs/deploy.md)。
 
 ### 2. 配置 Key
