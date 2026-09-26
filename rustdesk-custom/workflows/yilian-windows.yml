@@ -1,0 +1,201 @@
+# 医联（Yilian）自定义 RustDesk 客户端 —— Windows x64 构建
+#
+# 放到【rustdesk fork 的 .github/workflows/】下，配合仓库根目录的 rustdesk-custom/ 使用。
+# 依赖 rustdesk 官方可复用工作流：bridge.yml、third-party-RustDeskTempTopMostWindow.yml
+# 触发：Actions → 手动 Run workflow，或推送 v* 标签。
+#
+# 服务器/Key 建议在仓库 Settings → Variables 里配置（避免写死在代码里）：
+#   YILIAN_SERVER / YILIAN_RELAY / YILIAN_KEY
+# 未配置时用下面的默认值。
+name: Build Yilian Windows Client
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "产物版本号（命名用）"
+        required: false
+        default: "1.0.0"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  YILIAN_SERVER: ${{ vars.YILIAN_SERVER || '10.0.0.10' }}
+  YILIAN_RELAY: ${{ vars.YILIAN_RELAY || vars.YILIAN_SERVER || '10.0.0.10' }}
+  YILIAN_KEY: ${{ vars.YILIAN_KEY || '' }}
+  YILIAN_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+  RUST_VERSION: "1.75"
+  FLUTTER_VERSION: "3.24.5"
+  LLVM_VERSION: "15.0.6"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  bridge:
+    uses: ./.github/workflows/bridge.yml
+
+  topmost:
+    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
+    with:
+      upload-artifact: true
+      target: windows-2022
+      configuration: Release
+      platform: x64
+      target_version: Windows10
+
+  windows:
+    name: windows-x64
+    needs: [bridge, topmost]
+    runs-on: windows-2022
+    steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@v4
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Apply 医联 branding
+        shell: pwsh
+        run: |
+          ./rustdesk-custom/apply-branding.ps1 `
+            -RepoRoot "${{ github.workspace }}" `
+            -Server "${{ env.YILIAN_SERVER }}" `
+            -Relay "${{ env.YILIAN_RELAY }}" `
+            -Key "${{ env.YILIAN_KEY }}" `
+            -IconPath "${{ github.workspace }}/rustdesk-custom/branding/app_icon.ico" `
+            -AllowUnsignedCustomClient
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: ${{ env.LLVM_VERSION }}
+
+      - name: Install flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          architecture: x64
+
+      - name: Replace engine with rustdesk custom flutter engine
+        shell: pwsh
+        run: |
+          flutter doctor -v
+          flutter precache --windows
+          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
+          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
+          mv -Force windows-x64-release/* C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+
+      - name: Patch flutter
+        shell: bash
+        run: |
+          cp .github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff $(dirname $(dirname $(which flutter)))
+          cd $(dirname $(dirname $(which flutter)))
+          git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: yilian-windows
+
+      - name: Setup vcpkg with GitHub Actions binary cache
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: C:\vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        shell: bash
+        env:
+          VCPKG_DEFAULT_TRIPLET: x64-windows-static
+          VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
+        run: |
+          if ! $VCPKG_ROOT/vcpkg \
+            install \
+            --triplet x64-windows-static \
+            --x-install-root="$VCPKG_ROOT/installed"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"; echo "======"; cat "$_1"; echo "======"; echo ""
+            done
+            exit 1
+          fi
+
+      - name: Build rustdesk (医联)
+        shell: pwsh
+        run: |
+          python3 .\build.py --portable --flutter --skip-portable-pack --hwcodec
+          mv ./flutter/build/windows/x64/runner/Release ./rustdesk
+
+      - name: Download topmost window artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: topmostwindow-artifacts-x64
+          path: ./rustdesk
+
+      - name: Find Runner.res
+        continue-on-error: true
+        shell: bash
+        run: |
+          runner_res=$(find . -name "Runner.res" | head -n 1);
+          if [ -n "$runner_res" ]; then cp "$runner_res" ./libs/portable/Runner.res; fi
+
+      - name: Build self-extract installer / portable exe
+        shell: bash
+        run: |
+          sed -i '/dpiAware/d' res/manifest.xml
+          pushd ./libs/portable
+          pip3 install -r requirements.txt
+          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+          popd
+          mkdir -p ./SignOutput
+          mv ./target/release/rustdesk-portable-packer.exe "./SignOutput/yilian-${{ env.YILIAN_VERSION }}-x64.exe"
+
+      - name: Package green/portable zip
+        shell: pwsh
+        run: |
+          $toml = @(
+            '[options]',
+            "custom-rendezvous-server = '${{ env.YILIAN_SERVER }}'",
+            "relay-server = '${{ env.YILIAN_RELAY }}'",
+            "key = '${{ env.YILIAN_KEY }}'"
+          ) -join "`r`n"
+          Set-Content -LiteralPath ./rustdesk/RustDesk2.toml -Value $toml -Encoding UTF8
+          Copy-Item ./rustdesk-custom/share/启动-医联.bat ./rustdesk/ -Force
+          Compress-Archive -Path ./rustdesk/* -DestinationPath "./SignOutput/yilian-${{ env.YILIAN_VERSION }}-portable.zip" -Force
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yilian-windows
+          path: |
+            ./SignOutput/yilian-*.exe
+            ./SignOutput/yilian-*-portable.zip
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ./SignOutput/yilian-*.exe
+            ./SignOutput/yilian-*-portable.zip

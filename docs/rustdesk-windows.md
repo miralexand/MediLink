@@ -63,6 +63,12 @@ Get-Content E:\rustdesk\data\id_ed25519.pub
 > 不修改 RustDesk 源码。也可先在任意一台客户端「设置 → 网络 → 导出服务器配置」，
 > 把配置串填入 `settings.ini` 的 `ConfigString=` 后一键套用。
 
+### 进阶：品牌为「医联」的自定义客户端（源码编译）
+
+需要客户端界面直接显示「医联」而不再是 RustDesk、且安装/解压即连内网服务端时，
+可用 [`rustdesk-custom/`](../rustdesk-custom/README.md)：fork `rustdesk/rustdesk` 源码，
+运行品牌补丁脚本（改名/图标/内置服务器），复用 RustDesk 官方 CI 构建，产出安装版与绿色免安装版。
+
 ## 六、开机自启
 
 Docker Desktop 设置里勾选 *Start Docker Desktop when you sign in*；
