@@ -43,3 +43,6 @@ device-ledger.csv
 rustdesk-client/settings.ini
 rustdesk-client/dist/
 rustdesk-client/rustdesk.exe
+
+# GitHub Actions 日志包
+logs_*.zip

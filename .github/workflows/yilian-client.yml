@@ -224,6 +224,19 @@ jobs:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
           doNotCache: false
 
+      - name: Pin NASM 2.16.01 (aom can't parse NASM 3.x)
+        shell: pwsh
+        run: |
+          # vcpkg 会优先使用 C:\vcpkg\downloads\tools\nasm\nasm-3.01\，存在则跳过下载。
+          # aom 解析不了 NASM 3.01（版本号两段式），换 2.16.01 即可。
+          $dest = 'C:\vcpkg\downloads\tools\nasm\nasm-3.01'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Invoke-WebRequest -Uri 'https://www.nasm.us/pub/nasm/releasebuilds/2.16.01/win64/nasm-2.16.01-win64.zip' -OutFile nasm216.zip
+          Expand-Archive -Path nasm216.zip -DestinationPath nasm216 -Force
+          $exe = Get-ChildItem -Path nasm216 -Recurse -Filter nasm.exe | Select-Object -First 1
+          Copy-Item -Path (Join-Path $exe.DirectoryName '*') -Destination $dest -Recurse -Force
+          & "$dest\nasm.exe" -v
+
       - name: Install vcpkg dependencies
         shell: bash
         working-directory: rustdesk-src
