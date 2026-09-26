@@ -49,8 +49,19 @@ Get-Content E:\rustdesk\data\id_ed25519.pub
 
 保存后重启客户端，客户端会显示 `10.0.0.10` 分配的 ID，即可互相连接。
 
-> 想在多台客户端批量统一配置，可把上面三项写进 RustDesk 安装时的自定义配置，
-> 或部署后手动设置一次即可（局域网内通常只需设置一次）。
+### 批量/省事：用预置封装（打开即用）
+
+不想每台手填？仓库里的 [`rustdesk-client/`](../rustdesk-client/README.md) 提供两种封装，
+把 `Server / Relay / Key / 密码` 预先写进 `settings.ini` 后：
+
+- **安装版**：双击 `安装版-一键部署.bat`，自动静默安装 + 写入服务器信息 + 固定密码，
+  并注册系统服务、开机自启、锁屏可连（推荐）；
+- **便携版**：双击 `绿色版-制作便携包.bat` 生成 `RustDesk便携版.zip`，
+  拷到目标电脑解压后双击 `启动-RustDesk.bat` 即用（免安装，但无开机自启）。
+
+> 原理是官方 `rustdesk.exe --silent-install` / `--option`（ID 服务器、中继、Key）/ `--password`，
+> 不修改 RustDesk 源码。也可先在任意一台客户端「设置 → 网络 → 导出服务器配置」，
+> 把配置串填入 `settings.ini` 的 `ConfigString=` 后一键套用。
 
 ## 六、开机自启
 

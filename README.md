@@ -1,5 +1,17 @@
 # 医联（MediLink）医院内网远程协助系统
 
+> ## ⭐ 最简单方案（优先推荐）
+>
+> 只想快速用起来？**只在内网 Windows 上用 Docker 部署 RustDesk 服务端，其它电脑装官方
+> RustDesk 客户端**即可，不需要 MediLink 管理平台。
+>
+> **👉 [Windows + Docker 最简部署教程](docs/rustdesk-windows.md)**（两条命令 + 客户端填 ID/Key）
+>
+> 客户端不想手填？用 [`rustdesk-client/`](rustdesk-client/README.md) 一键预置服务端地址、
+> Key 与固定密码，生成「安装版」或「免安装便携版」，目标电脑打开即用。
+
+---
+
 > 面向医院信息科的内网远程运维平台：**Docker 自托管 + 被控端 Agent + 信息科控制端**。
 > 数据不出内网、批量静默部署、设备台账、会话审计、等保合规友好。
 

@@ -38,3 +38,8 @@ desktop.ini
 
 # 台账（含敏感信息，默认不入库；如需版本化请删除此行）
 device-ledger.csv
+
+# RustDesk 客户端封装（settings.ini 含密码，dist 为生成物）
+rustdesk-client/settings.ini
+rustdesk-client/dist/
+rustdesk-client/rustdesk.exe
