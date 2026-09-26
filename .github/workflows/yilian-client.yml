@@ -193,7 +193,10 @@ jobs:
           flutter precache --windows
           Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
           Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          mv -Force windows-x64-release/* C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+          $dest = Join-Path $env:FLUTTER_ROOT 'bin/cache/artifacts/engine/windows-x64-release'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item -Path 'windows-x64-release/*' -Destination $dest -Recurse -Force
+          Write-Host "engine replaced -> $dest"
 
       - name: Patch flutter
         shell: bash
