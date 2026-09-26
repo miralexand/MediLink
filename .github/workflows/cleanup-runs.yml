@@ -1,0 +1,111 @@
+name: Cleanup Workflow Runs
+
+# 定期清理 GitHub Actions 运行记录与产物，避免越积越多。
+# 规则：删除「创建时间早于 retention_days 天」且「不是该工作流最近 keep_min 次」的运行。
+on:
+  schedule:
+    # 每天 18:00 UTC（北京时间次日 02:00）
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: "保留最近多少天的运行"
+        required: false
+        default: "7"
+      keep_min:
+        description: "每个工作流至少保留最近几次运行"
+        required: false
+        default: "3"
+      delete_artifacts:
+        description: "同时清理过期 artifacts"
+        type: boolean
+        default: true
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Delete old workflow runs and artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const currentRunId = context.runId;
+            const retentionDays = parseInt('${{ github.event.inputs.retention_days || 7 }}', 10);
+            const keepMin = parseInt('${{ github.event.inputs.keep_min || 3 }}', 10);
+            const deleteArtifacts = '${{ github.event.inputs.delete_artifacts || 'true' }}' !== 'false';
+            const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+
+            core.info(`retentionDays=${retentionDays}, keepMin=${keepMin}, cutoff=${cutoff.toISOString()}`);
+
+            // 1) 收集所有已完成的运行
+            let runs = [];
+            for (let page = 1; ; page++) {
+              const res = await github.rest.actions.listWorkflowRunsForRepo({
+                owner, repo, per_page: 100, page,
+              });
+              runs = runs.concat(res.data.workflow_runs);
+              if (res.data.workflow_runs.length < 100) break;
+            }
+            core.info(`total runs: ${runs.length}`);
+
+            // 2) 按工作流分组，保留最近 keepMin 次
+            const keep = new Set();
+            const byWorkflow = {};
+            for (const r of runs) {
+              (byWorkflow[r.workflow_id] = byWorkflow[r.workflow_id] || []).push(r);
+            }
+            for (const id of Object.keys(byWorkflow)) {
+              const list = byWorkflow[id]
+                .slice()
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              for (let i = 0; i < Math.min(keepMin, list.length); i++) keep.add(list[i].id);
+            }
+
+            // 3) 删除过期运行（跳过当前运行、未完成、需保留的）
+            let deleted = 0;
+            for (const r of runs) {
+              if (r.id === currentRunId) continue;
+              if (r.status !== 'completed') continue;
+              if (keep.has(r.id)) continue;
+              if (new Date(r.created_at) >= cutoff) continue;
+              try {
+                await github.rest.actions.deleteWorkflowRun({ owner, repo, run_id: r.id });
+                deleted++;
+                core.info(`deleted run ${r.id} (${r.workflow_id}) ${r.created_at}`);
+              } catch (e) {
+                core.warning(`failed to delete run ${r.id}: ${e.message}`);
+              }
+            }
+            core.info(`deleted runs: ${deleted}`);
+
+            // 4) 清理过期 artifacts（删除运行会连带删除，这里兜底处理遗留的）
+            let deletedArtifacts = 0;
+            if (deleteArtifacts) {
+              let arts = [];
+              for (let page = 1; ; page++) {
+                const res = await github.rest.actions.listArtifactsForRepo({
+                  owner, repo, per_page: 100, page,
+                });
+                arts = arts.concat(res.data.artifacts);
+                if (res.data.artifacts.length < 100) break;
+              }
+              for (const a of arts) {
+                if (new Date(a.created_at) >= cutoff) continue;
+                try {
+                  await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+                  deletedArtifacts++;
+                  core.info(`deleted artifact ${a.id} (${a.name})`);
+                } catch (e) {
+                  core.warning(`failed to delete artifact ${a.id}: ${e.message}`);
+                }
+              }
+            }
+            core.info(`deleted artifacts: ${deletedArtifacts}`);
+            core.notice(`Cleanup done: runs=${deleted}, artifacts=${deletedArtifacts}`);
