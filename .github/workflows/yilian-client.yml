@@ -33,6 +33,7 @@ env:
   YILIAN_SERVER: ${{ vars.YILIAN_SERVER || '10.0.0.10' }}
   YILIAN_RELAY: ${{ vars.YILIAN_RELAY || vars.YILIAN_SERVER || '10.0.0.10' }}
   YILIAN_KEY: ${{ vars.YILIAN_KEY || '' }}
+  YILIAN_PASSWORD: ${{ secrets.YILIAN_PASSWORD || vars.YILIAN_PASSWORD || 'MediLink@123' }}
   RUST_VERSION: "1.75"
   FLUTTER_BRIDGE_VERSION: "3.22.3"
   FLUTTER_VERSION: "3.24.5"
@@ -180,6 +181,7 @@ jobs:
             -Server "${{ env.YILIAN_SERVER }}" `
             -Relay "${{ env.YILIAN_RELAY }}" `
             -Key "${{ env.YILIAN_KEY }}" `
+            -Password "${{ env.YILIAN_PASSWORD }}" `
             -IconPath "${{ github.workspace }}/medi-link/rustdesk-custom/branding/app_icon.ico" `
             -AllowUnsignedCustomClient
 

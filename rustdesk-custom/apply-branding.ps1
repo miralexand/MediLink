@@ -1,15 +1,17 @@
 ﻿# 医联（Yilian）自定义 RustDesk 客户端 —— 品牌补丁脚本
 #
-# 在【rustdesk 源码根目录】上运行，把官方源码改成「医联」，并内置内网自建服务器地址。
+# 在【rustdesk 源码根目录】上运行，把官方源码改成「医联」，并内置内网自建服务器地址与无人值守密码。
 # 只改必要文件，锚点校验失败会中止，避免误改。
 #
 # 用法（在 rustdesk 仓库根目录）：
 #   powershell -ExecutionPolicy Bypass -File .\rustdesk-custom\apply-branding.ps1 `
-#     -Server 10.0.0.10 -Relay 10.0.0.10 -Key "服务端公钥" -IconPath .\rustdesk-custom\branding\app_icon.ico
+#     -Server 10.0.0.10 -Relay 10.0.0.10 -Key "服务端公钥" -Password "MediLink@123" `
+#     -IconPath .\rustdesk-custom\branding\app_icon.ico
 #
 # 说明：
 # - 品牌名/图标属重新编译，符合 AGPL；本脚本保留 RustDesk 上游版权声明，仅追加信息科署名。
-# - 默认服务器通过内置 DEFAULT_SETTINGS 注入，安装版与绿色版都无需再手填。
+# - 默认服务器通过内置 DEFAULT_SETTINGS 注入；无人值守密码通过内置 HARD_SETTINGS 预置（preset），
+#   安装版与绿色版都无需再手填、无需被控端点“接受”。
 [CmdletBinding()]
 param(
     [string]$RepoRoot = (Get-Location).Path,
@@ -20,6 +22,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Server,
     [string]$Relay = '',
     [string]$Key = '',
+    [string]$Password = '',
     [string]$IconPath = '',
     [switch]$AllowUnsignedCustomClient
 )
@@ -30,6 +33,7 @@ function Read-Text([string]$p) { return [IO.File]::ReadAllText($p, [Text.Encodin
 function Write-Text([string]$p, [string]$t) {
     [IO.File]::WriteAllText($p, $t, (New-Object Text.UTF8Encoding($false)))
 }
+function Esc-Rust([string]$s) { return $s.Replace('\', '\\').Replace('"', '\"') }
 function Set-Anchor {
     param([string]$Text, [string]$Old, [string]$New, [string]$What)
     if ($Text.Contains($New)) { Write-Host "  = 已是目标值：$What" -ForegroundColor DarkGray; return $Text }
@@ -42,6 +46,7 @@ function Set-Anchor {
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 if ([string]::IsNullOrWhiteSpace($Relay)) { $Relay = $Server }
 if ([string]::IsNullOrWhiteSpace($Key)) { Write-Host '!! 未提供 -Key，客户端将无法与自建服务器握手，请务必补齐。' -ForegroundColor Yellow }
+if ([string]::IsNullOrWhiteSpace($Password)) { Write-Host '!! 未提供 -Password，被控端将没有固定无人值守密码（需手动设置）。' -ForegroundColor Yellow }
 
 $cfgPath = Join-Path $RepoRoot 'libs\hbb_common\src\config.rs'
 $commonPath = Join-Path $RepoRoot 'src\common.rs'
@@ -57,21 +62,26 @@ $t = Set-Anchor $t 'RwLock::new("RustDesk".to_owned())' ("RwLock::new(`"$AppName
 $t = Set-Anchor $t '&["rs-ny.rustdesk.com"]' ("&[`"$Server`"]") 'RENDEZVOUS_SERVERS'
 Write-Text $cfgPath $t
 
-Write-Host '== 2/4 内置默认服务器（src/common.rs）==' -ForegroundColor Cyan
+Write-Host '== 2/4 内置服务器与无人值守密码（src/common.rs）==' -ForegroundColor Cyan
 $t = Read-Text $commonPath
-$fn = @"
-// YILIAN_BRANDING: 内置医院内网自建服务器，安装即用
-fn apply_yilian_defaults() {
-    let mut d = config::DEFAULT_SETTINGS.write().unwrap();
-    d.entry(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_string()).or_insert_with(|| "$Server".to_owned());
-    d.entry("relay-server".to_string()).or_insert_with(|| "$Relay".to_owned());
-    d.entry("key".to_string()).or_insert_with(|| "$Key".to_owned());
+$body = New-Object System.Collections.Generic.List[string]
+$body.Add('    let mut d = config::DEFAULT_SETTINGS.write().unwrap();')
+$body.Add('    d.entry(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_string()).or_insert_with(|| "' + (Esc-Rust $Server) + '".to_owned());')
+$body.Add('    d.entry("relay-server".to_string()).or_insert_with(|| "' + (Esc-Rust $Relay) + '".to_owned());')
+$body.Add('    d.entry("key".to_string()).or_insert_with(|| "' + (Esc-Rust $Key) + '".to_owned());')
+if (-not [string]::IsNullOrWhiteSpace($Password)) {
+    $body.Add('    d.entry("approve-mode".to_string()).or_insert_with(|| "password".to_owned());')
+    $body.Add('    d.entry("verification-method".to_string()).or_insert_with(|| "use-both-passwords".to_owned());')
+    $body.Add('    d.entry("remove-preset-password-warning".to_string()).or_insert_with(|| "Y".to_owned());')
+    $body.Add('    drop(d);')
+    $body.Add('    {')
+    $body.Add('        let mut h = config::HARD_SETTINGS.write().unwrap();')
+    $body.Add('        h.entry("password".to_string()).or_insert_with(|| "' + (Esc-Rust $Password) + '".to_owned());')
+    $body.Add('    }')
 }
-
-pub fn load_custom_client() {
-    apply_yilian_defaults();
-"@
-$t = Set-Anchor $t 'pub fn load_custom_client() {' $fn 'load_custom_client 注入默认服务器'
+$fnText = "// YILIAN_BRANDING: 内置医院内网自建服务器与无人值守密码，安装即用`nfn apply_yilian_defaults() {`n" +
+          ($body -join "`n") + "`n}`n`npub fn load_custom_client() {`n    apply_yilian_defaults();"
+$t = Set-Anchor $t 'pub fn load_custom_client() {' $fnText 'load_custom_client 注入默认配置'
 
 if ($AllowUnsignedCustomClient) {
     $oldVerify = @"
@@ -93,9 +103,9 @@ Write-Text $commonPath $t
 
 Write-Host '== 3/4 Windows 文件属性（Runner.rc）==' -ForegroundColor Cyan
 $t = Read-Text $rcPath
-$t = Set-Anchor $t 'VALUE "ProductName", "RustDesk" "\0"' ("VALUE " + '"ProductName", "' + $AppName + '" "\0"') 'ProductName'
-$t = Set-Anchor $t 'VALUE "FileDescription", "RustDesk Remote Desktop" "\0"' ("VALUE " + '"FileDescription", "' + $Tagline + '" "\0"') 'FileDescription'
-$t = Set-Anchor $t 'VALUE "CompanyName", "Purslane Tech Pte. Ltd." "\0"' ("VALUE " + '"CompanyName", "' + $Company + '" "\0"') 'CompanyName'
+$t = Set-Anchor $t 'VALUE "ProductName", "RustDesk" "\0"' ('VALUE "ProductName", "' + $AppName + '" "\0"') 'ProductName'
+$t = Set-Anchor $t 'VALUE "FileDescription", "RustDesk Remote Desktop" "\0"' ('VALUE "FileDescription", "' + $Tagline + '" "\0"') 'FileDescription'
+$t = Set-Anchor $t 'VALUE "CompanyName", "Purslane Tech Pte. Ltd." "\0"' ('VALUE "CompanyName", "' + $Company + '" "\0"') 'CompanyName'
 $oldCopy = 'VALUE "LegalCopyright", "Copyright © 2026 Purslane Tech Pte. Ltd. All rights reserved." "\0"'
 $newCopy = 'VALUE "LegalCopyright", "Copyright © 2026 ' + $Company + '. 基于 RustDesk（AGPL-3.0），Copyright © Purslane Tech Pte. Ltd." "\0"'
 $t = Set-Anchor $t $oldCopy $newCopy 'LegalCopyright'
@@ -122,4 +132,5 @@ Write-Host ("  组织     : " + $Org)
 Write-Host ("  服务器   : " + $Server)
 Write-Host ("  中继     : " + $Relay)
 Write-Host ("  Key      : " + $(if ($Key) { '(已设置)' } else { '(空)' }))
+Write-Host ("  无人值守密码: " + $(if ($Password) { '(已内置)' } else { '(未设置)' }))
 Write-Host '下一步：提交到你的 rustdesk fork，然后运行 .github/workflows/yilian-windows.yml。'

@@ -26,6 +26,7 @@ Get-Content E:\rustdesk\data\id_ed25519.pub
 | `YILIAN_SERVER` | ID 服务器（hbbs）地址 | `192.168.0.26` |
 | `YILIAN_RELAY` | 中继（hbbr）地址，一般同上 | `192.168.0.26` |
 | `YILIAN_KEY` | 服务端公钥 | `2AlMqc...NLo=` |
+| `YILIAN_PASSWORD` | 被控端固定无人值守密码（会编译进客户端） | `MediLink@123` |
 
 ## 二、配置仓库变量（Variables）
 
@@ -42,6 +43,11 @@ Get-Content E:\rustdesk\data\id_ed25519.pub
 | `YILIAN_SERVER` | `192.168.0.26` |
 | `YILIAN_RELAY` | `192.168.0.26` |
 | `YILIAN_KEY` | `2AlMqc...NLo=`（公钥原文，不要换行/空格） |
+| `YILIAN_PASSWORD` | `MediLink@123`（无人值守固定密码） |
+
+> `YILIAN_PASSWORD` 会**编译进客户端**，安装/解压后即具备固定的无人值守密码，
+> 主控端连接时直接输入该密码即可，被控端**无需点“接受”**。因其本质是内置密码，
+> 建议放在 **Secrets**（工作流也支持 `secrets.YILIAN_PASSWORD`）。不填则沿用随机临时密码。
 
 > 提示：Key 是**公钥**，会随客户端分发，本身不算机密；但因仓库可能对外公开，
 > 仍建议放 Variables，不要写进代码。如需更严，可改为 Secrets（见第五、六节）。

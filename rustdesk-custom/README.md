@@ -50,7 +50,7 @@
 | 文件 | 改动 |
 |---|---|
 | `libs/hbb_common/src/config.rs` | `APP_NAME`→医联、`ORG`→com.yilian、默认 `RENDEZVOUS_SERVERS`→你的服务器 |
-| `src/common.rs` | 注入 `DEFAULT_SETTINGS`：`custom-rendezvous-server`/`relay-server`/`key`（安装即用，无需手填） |
+| `src/common.rs` | 注入 `DEFAULT_SETTINGS`：`custom-rendezvous-server`/`relay-server`/`key`（安装即用，无需手填）；若提供密码，另注入 `HARD_SETTINGS.password` 作为**无人值守固定密码**，并设 `approve-mode=password`（免点“接受”） |
 | `flutter/windows/runner/Runner.rc` | 产品名、文件描述（含信息科标语）、公司名、版权（保留 RustDesk 上游声明） |
 | `flutter/windows/runner/resources/app_icon.ico`、`res/icon.ico` | 替换为你提供的图标 |
 
