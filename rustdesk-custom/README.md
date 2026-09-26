@@ -20,6 +20,8 @@
 已内置 [`.github/workflows/yilian-client.yml`](../.github/workflows/yilian-client.yml)，
 会 checkout rustdesk 源码、内联生成 flutter-rust-bridge、内联编译 topmost DLL，再打补丁打包。
 
+> 图文配置步骤（变量、触发、下载、排错）见 **[docs/yilian-build.md](../docs/yilian-build.md)**。
+
 1. 在 MediLink 的 **Settings → Secrets and variables → Actions → Variables** 增加：
    - `YILIAN_SERVER`：服务端内网 IP，如 `10.0.0.10`
    - `YILIAN_RELAY`：中继，一般同上
