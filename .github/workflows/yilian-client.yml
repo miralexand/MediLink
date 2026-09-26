@@ -140,6 +140,15 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - name: Normalize version
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          if ([string]::IsNullOrWhiteSpace($v)) { $v = "${{ github.ref_name }}" -replace '^yilian-v', '' }
+          if ([string]::IsNullOrWhiteSpace($v)) { $v = '1.0.0' }
+          "YILIAN_VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "YILIAN_VERSION=$v"
+
       - name: Checkout MediLink (build kit)
         uses: actions/checkout@v4
         with:
