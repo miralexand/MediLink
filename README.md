@@ -11,7 +11,7 @@
 > Key 与固定密码，生成「安装版」或「免安装便携版」，目标电脑打开即用。
 >
 > 想要**品牌为「医联」的自定义客户端**（基于 RustDesk 源码重新编译，内置服务器）？
-> 见 [`rustdesk-custom/`](rustdesk-custom/README.md)。
+> 见 [`rustdesk-custom/`](rustdesk-custom/README.md)——可**在本仓库 Actions 自动构建**，无需 fork。
 
 ---
 
