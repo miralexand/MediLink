@@ -327,3 +327,140 @@ jobs:
           files: |
             rustdesk-src/SignOutput/yilian-*.exe
             rustdesk-src/SignOutput/yilian-*-portable.zip
+
+  # 4) Windows 7 / 32 位兼容版：Sciter（非 Flutter）构建
+  # Flutter 客户端要求 Windows 10+，在 Win7 上会黑屏；Win7/8/32 位请用此产物。
+  windows-sciter:
+    name: windows-win7-sciter
+    runs-on: windows-2022
+    steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout MediLink (build kit)
+        uses: actions/checkout@v4
+        with:
+          path: medi-link
+
+      - name: Checkout rustdesk source
+        uses: actions/checkout@v4
+        with:
+          repository: rustdesk/rustdesk
+          ref: ${{ env.RUSTDESK_REF }}
+          submodules: recursive
+          path: rustdesk-src
+
+      - name: Normalize version
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          if ([string]::IsNullOrWhiteSpace($v)) { $v = "${{ github.ref_name }}" -replace '^yilian-v', '' }
+          if ([string]::IsNullOrWhiteSpace($v)) { $v = '1.0.0' }
+          "YILIAN_VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "YILIAN_VERSION=$v"
+
+      - name: Apply 医联 branding
+        shell: pwsh
+        run: |
+          ./medi-link/rustdesk-custom/apply-branding.ps1 `
+            -RepoRoot "${{ github.workspace }}/rustdesk-src" `
+            -Server "${{ env.YILIAN_SERVER }}" `
+            -Relay "${{ env.YILIAN_RELAY }}" `
+            -Key "${{ env.YILIAN_KEY }}" `
+            -Password "${{ env.YILIAN_PASSWORD }}" `
+            -IconPath "${{ github.workspace }}/medi-link/rustdesk-custom/branding/app_icon.ico" `
+            -AllowUnsignedCustomClient
+
+      - name: Install LLVM and Clang (32-bit)
+        uses: rustdesk-org/install-llvm-action-32bit@6aa7d9ad3df84dff01cd4596dd0fc880a7f47fce
+        with:
+          version: ${{ env.LLVM_VERSION }}
+
+      - name: Install Rust nightly i686
+        shell: bash
+        run: |
+          rustup toolchain install nightly-2023-10-13-i686-pc-windows-msvc \
+            --target i686-pc-windows-msvc --component rustfmt \
+            --profile minimal --no-self-update --force-non-host
+          rustup default nightly-2023-10-13-i686-pc-windows-msvc --force-non-host
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: yilian-windows-sciter
+          workspaces: rustdesk-src
+
+      - name: Setup vcpkg with GitHub Actions binary cache
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: C:\vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Pin NASM 2.16.01 (aom can't parse NASM 3.x)
+        shell: pwsh
+        run: |
+          $dest = 'C:\vcpkg\downloads\tools\nasm\nasm-3.01'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Invoke-WebRequest -Uri 'https://www.nasm.us/pub/nasm/releasebuilds/2.16.01/win64/nasm-2.16.01-win64.zip' -OutFile nasm216.zip
+          Expand-Archive -Path nasm216.zip -DestinationPath nasm216 -Force
+          $exe = Get-ChildItem -Path nasm216 -Recurse -Filter nasm.exe | Select-Object -First 1
+          Copy-Item -Path (Join-Path $exe.DirectoryName '*') -Destination $dest -Recurse -Force
+          & "$dest\nasm.exe" -v
+
+      - name: Install vcpkg dependencies (x86)
+        shell: bash
+        working-directory: rustdesk-src
+        env:
+          VCPKG_DEFAULT_TRIPLET: x86-windows-static
+          VCPKG_DEFAULT_HOST_TRIPLET: x86-windows-static
+        run: |
+          if ! $VCPKG_ROOT/vcpkg \
+            install \
+            --triplet x86-windows-static \
+            --x-install-root="$VCPKG_ROOT/installed"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"; echo "======"; cat "$_1"; echo "======"; echo ""
+            done
+            exit 1
+          fi
+
+      - name: Build rustdesk sciter (医联)
+        shell: bash
+        working-directory: rustdesk-src
+        run: |
+          python3 res/inline-sciter.py
+          sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
+          cargo update -p sciter-rs --precise 674e07d3066ca9a92ced3816203ab6b652629d1e
+          cargo build --locked --features inline,vram,hwcodec --release --bins
+          mkdir -p ./Release
+          mv ./target/release/rustdesk.exe ./Release/rustdesk.exe
+          curl -LJ -o ./Release/sciter.dll https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
+
+      - name: Build self-extract installer / portable exe (win7)
+        shell: bash
+        working-directory: rustdesk-src
+        run: |
+          sed -i '/dpiAware/d' res/manifest.xml
+          pushd ./libs/portable
+          pip3 install -r requirements.txt
+          python3 ./generate.py -f ../../Release/ -o . -e ../../Release/rustdesk.exe
+          popd
+          mkdir -p ./SignOutput
+          mv ./target/release/rustdesk-portable-packer.exe "./SignOutput/yilian-${{ env.YILIAN_VERSION }}-win7.exe"
+
+      - name: Upload win7 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yilian-windows-win7
+          path: rustdesk-src/SignOutput/yilian-*-win7.exe
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: false
+          files: rustdesk-src/SignOutput/yilian-*-win7.exe

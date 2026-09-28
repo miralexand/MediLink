@@ -72,8 +72,11 @@ Get-Content E:\rustdesk\data\id_ed25519.pub
 
 | 产物 | 用途 |
 |---|---|
-| `yilian-<版本>-x64.exe` | 安装版（也可直接运行，等同便携自解压） |
-| `yilian-<版本>-portable.zip` | 绿色免安装版（预置服务器，解压即用） |
+| `yilian-<版本>-x64.exe` | 安装版（Win10/11，也可直接运行，等同便携自解压） |
+| `yilian-<版本>-portable.zip` | 绿色免安装版（Win10/11，预置服务器，解压即用） |
+| `yilian-<版本>-win7.exe` | **Windows 7/8 及 32 位系统专用**（Sciter 版） |
+
+> ⚠️ Flutter 版（x64）要求 **Windows 10+**，在 Win7 上打开会**黑屏**；Win7/8/32 位请用 `-win7.exe`（Sciter 后端）。
 
 ## 五、使用
 
