@@ -452,15 +452,33 @@ jobs:
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe "./SignOutput/yilian-${{ env.YILIAN_VERSION }}-win7.exe"
 
+      - name: Package win7 portable zip
+        shell: pwsh
+        working-directory: rustdesk-src
+        run: |
+          $toml = @(
+            '[options]',
+            "custom-rendezvous-server = '${{ env.YILIAN_SERVER }}'",
+            "relay-server = '${{ env.YILIAN_RELAY }}'",
+            "key = '${{ env.YILIAN_KEY }}'"
+          ) -join "`r`n"
+          Set-Content -LiteralPath ./Release/RustDesk2.toml -Value $toml -Encoding UTF8
+          Copy-Item ../medi-link/rustdesk-custom/share/启动-医联.bat ./Release/ -Force
+          Compress-Archive -Path ./Release/* -DestinationPath "./SignOutput/yilian-${{ env.YILIAN_VERSION }}-win7-portable.zip" -Force
+
       - name: Upload win7 artifact
         uses: actions/upload-artifact@v4
         with:
           name: yilian-windows-win7
-          path: rustdesk-src/SignOutput/yilian-*-win7.exe
+          path: |
+            rustdesk-src/SignOutput/yilian-*-win7.exe
+            rustdesk-src/SignOutput/yilian-*-win7-portable.zip
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           fail_on_unmatched_files: false
-          files: rustdesk-src/SignOutput/yilian-*-win7.exe
+          files: |
+            rustdesk-src/SignOutput/yilian-*-win7.exe
+            rustdesk-src/SignOutput/yilian-*-win7-portable.zip

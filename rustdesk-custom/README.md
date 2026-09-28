@@ -6,7 +6,7 @@
 
 - **安装版**：`yilian-<版本>-x64.exe`（自解压 exe，运行即安装，注册系统服务、开机自启）；
 - **绿色免安装版**：`yilian-<版本>-portable.zip`（解压即用，已预置服务器，双击 `启动-医联.bat` 连上内网 Docker 服务端）；
-- **Windows 7/8/32 位版**：`yilian-<版本>-win7.exe`（Sciter 后端；Flutter 版在 Win7 会黑屏）。
+- **Windows 7/8/32 位版**：`yilian-<版本>-win7.exe`（Sciter 安装版）与 `yilian-<版本>-win7-portable.zip`（Sciter 绿色免安装版；Flutter 版在 Win7 会黑屏）。
 
 > OSS 版「改应用名/图标」只能**重新编译**（运行时的自定义客户端配置需 RustDesk 私钥签名，
 > 无法用配置绕过）。本套件通过补丁 + 官方构建链实现品牌化，**不修改其上流代码逻辑**，
